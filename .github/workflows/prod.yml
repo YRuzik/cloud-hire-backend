@@ -1,0 +1,81 @@
+#6
+name: production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  telegram-start:
+    runs-on: ubuntu-latest
+    steps:
+      - name: send telegram message on push
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          format: markdown
+          message: |
+            🕰 ${{ github.actor }} start build:
+            Repository: [${{ github.repository }}](${{ github.repositoryUrl }})
+            Commit message: ${{ github.event.commits[0].message }}
+
+            [View Action](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) | [Commit changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
+
+  dockerize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+      - name: login to docker hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: set up docker buildx
+        uses: docker/setup-buildx-action@v3
+      - name: build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/cloud-hire-backend
+
+  telegram-success:
+    runs-on: ubuntu-latest
+    if: success()
+    needs: [ dockerize ]
+    steps:
+      - name: send telegram message on push
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          format: markdown
+          message: |
+            ✅ ${{ github.actor }} success build:
+            Repository: [${{ github.repository }}](${{ github.repositoryUrl }})
+            Commit message: ${{ github.event.commits[0].message }}
+
+            See changes: https://chat.pagerw.ru
+            [View Action](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) | [Commit changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
+
+  telegram-error:
+    runs-on: ubuntu-latest
+    if: failure()
+    needs: [ dockerize ]
+    steps:
+      - name: send telegram message on push
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          format: markdown
+          message: |
+            🚫 ${{ github.actor }} build error:
+            Repository: [${{ github.repository }}](${{ github.repositoryUrl }})
+            Commit message: ${{ github.event.commits[0].message }}
+
+            [View Action](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) | [Commit changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
