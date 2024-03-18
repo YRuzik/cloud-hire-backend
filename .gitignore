@@ -7,7 +7,7 @@ target/
 compose.yaml
 mvnw
 mvnw.cmd
-.mvn
+.mvn/wrapper
 
 ### STS ###
 .apt_generated
