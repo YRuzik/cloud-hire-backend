@@ -5,6 +5,9 @@ target/
 !**/src/test/**/target/
 /src/main/resources/application.properties
 compose.yaml
+mvnw
+mvnw.cmd
+.mvn
 
 ### STS ###
 .apt_generated

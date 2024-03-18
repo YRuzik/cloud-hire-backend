@@ -2,11 +2,12 @@ package com.app.controller.auth;
 
 import com.app.entity.User;
 import com.app.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -20,11 +21,15 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     private final UserRepository userRepository;
     private final SessionRepository sessionRepository;
+    private final RedisTemplate<String, String> redisTemplate;
+    private final ObjectMapper objectMapper;
 
     @Autowired
-    public AuthController(UserRepository userRepository, SessionRepository sessionRepository) {
+    public AuthController(UserRepository userRepository, SessionRepository sessionRepository, RedisTemplate<String, String> redisTemplate, ObjectMapper objectMapper) {
         this.userRepository = userRepository;
         this.sessionRepository = sessionRepository;
+        this.redisTemplate = redisTemplate;
+        this.objectMapper = objectMapper;
     }
 
     @PostMapping(value = "/register", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -66,7 +71,9 @@ public class AuthController {
             if (fetchedUser != null && BCrypt.checkpw(password, fetchedUser.getPassword())) {
                 Session session = sessionRepository.createSession();
 
-                sessionRepository.save(session);
+                String userJson = objectMapper.writeValueAsString(fetchedUser);
+
+                redisTemplate.opsForValue().set("user: " + session.getId(), userJson);
 
                 Cookie sessionCookie = new Cookie("SESSION", session.getId());
                 sessionCookie.setMaxAge(60 * 60);
@@ -87,7 +94,7 @@ public class AuthController {
     public ResponseEntity<String> logoutUser(@CookieValue(name = "SESSION", required = false) String sessionId, HttpServletResponse response) {
         try {
             if (sessionId != null) {
-                sessionRepository.deleteById(sessionId);
+                redisTemplate.delete("user: " + sessionId);
 
                 Cookie sessionCookie = new Cookie("SESSION", null);
                 sessionCookie.setMaxAge(0);
