@@ -15,9 +15,10 @@ import org.springframework.session.Session;
 import org.springframework.session.SessionRepository;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 
 @RestController
-@RequestMapping("/api")
 public class AuthController {
     private final UserRepository userRepository;
     private final SessionRepository sessionRepository;
@@ -61,12 +62,18 @@ public class AuthController {
     }
 
     @PostMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> loginUser(@RequestBody User user, HttpServletResponse response) {
+    public ResponseEntity<String> loginUser(@RequestBody Map<String, String> credentials, HttpServletResponse response) {
         try {
-            String username = user.getUsername();
-            String password = user.getPassword();
+            String identity = credentials.get("identity");
+            String password = credentials.get("password");
 
-            User fetchedUser = userRepository.findByUsername(username);
+            User fetchedUser = null;
+
+            if (isValidEmail(identity)) {
+                fetchedUser = userRepository.findByEmail(identity);
+            } else {
+                fetchedUser = userRepository.findByUsername(identity);
+            }
 
             if (fetchedUser != null && BCrypt.checkpw(password, fetchedUser.getPassword())) {
                 Session session = sessionRepository.createSession();
@@ -107,5 +114,9 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Login failed: " + e.getMessage());
         }
+    }
+
+    private boolean isValidEmail(String email) {
+        return email.matches("([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\\.[a-zA-Z0-9_-]+)");
     }
 }
