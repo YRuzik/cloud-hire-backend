@@ -7,3 +7,16 @@ CREATE TABLE IF NOT EXISTS users
     first_name VARCHAR NOT NULL,
     last_name VARCHAR NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS files_metadata
+(
+    id SERIAL PRIMARY KEY,
+    date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    date_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    size BIGINT NOT NULL,
+    mime_type VARCHAR(255) NOT NULL,
+    location VARCHAR(255) NOT NULL,
+    user_id INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
