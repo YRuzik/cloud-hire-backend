@@ -24,7 +24,7 @@ public class FileMetadata {
     @Column(name = "date_modified")
     private LocalDateTime dateModified;
 
-    @Column(name = "name", unique = true)
+    @Column(name = "name")
     private String name;
 
     @Column(name = "size")
